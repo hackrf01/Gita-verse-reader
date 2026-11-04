@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bhagavad Gita</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        form label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        form input[type="number"] {
+            width: calc(50% - 12px);
+            padding: 10px;
+            margin-right: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        form input[type="number"]:last-child {
+            margin-right: 0;
+        }
+
+        form button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        form button:hover {
+            background: #45a049;
+        }
+
+        #gita-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: left;
+        }
+
+        #gita-content h2 {
+            color: #4CAF50;
+        }
+
+        #gita-content h3 {
+            margin-top: 20px;
+            color: #333;
+        }
+
+        #gita-content ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #gita-content li {
+            margin: 10px 0;
+        }
+
+        #read-aloud-button {
+            display: none;
+            margin-top: 20px;
+            padding: 10px;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        #read-aloud-button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bhagavad Gita</h1>
+    <form id="gita-form">
+        <label for="chapter">Chapter:</label>
+        <input type="number" id="chapter" value="1" min="1" max="18">
+        <label for="verse">Verse:</label>
+        <input type="number" id="verse" value="1" min="1" max="100">
+        <button type="submit">Fetch</button>
+    </form>
+    <div id="gita-content"></div>
+    <button id="read-aloud-button">Read Aloud</button>
+
+    <script>
+        const apiUrl = 'https://bhagavadgitaapi.in/slok/';
+        const chapterInput = document.getElementById('chapter');
+        const verseInput = document.getElementById('verse');
+        const gitaContentDiv = document.getElementById('gita-content');
+        const form = document.getElementById('gita-form');
+        const readAloudButton = document.getElementById('read-aloud-button');
+
+        form.addEventListener('submit', fetchGitaContent);
+        readAloudButton.addEventListener('click', readAloud);
+
+        function fetchGitaContent(event) {
+            event.preventDefault();
+            const chapter = chapterInput.value;
+            const verse = verseInput.value;
+            const url = `${apiUrl}${chapter}/${verse}/`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const slok = data.slok;
+                    const tej = data.tej ? `${data.tej.author}: ${data.tej.ht}` : 'Translation not available';
+                    const purohit = data.purohit ? `${data.purohit.author}: ${data.purohit.et}` : 'Translation not available';
+
+                    const gitaContent = `
+                        <h2>Chapter ${chapter}, Verse ${verse}</h2>
+                        <p id="slok">Slok: ${slok}</p>
+                        <h3>Translation:</h3>
+                        <ul>
+                            <li id="translation-hindi">Hindi: ${tej}</li>
+                            <li id="translation-english">English: ${purohit}</li>
+                        </ul>
+                    `;
+
+                    gitaContentDiv.innerHTML = gitaContent;
+                    readAloudButton.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    gitaContentDiv.innerHTML = '<p>Failed to fetch data. Please try again later.</p>';
+                    readAloudButton.style.display = 'none';
+                });
+        }
+
+        function readAloud() {
+            const slokText = document.getElementById('slok').textContent;
+            const hindiTranslation = document.getElementById('translation-hindi').textContent;
+            const englishTranslation = document.getElementById('translation-english').textContent;
+
+            const slokUtterance = new SpeechSynthesisUtterance(slokText);
+            slokUtterance.lang = 'sa-IN'; // Sanskrit - India
+
+            const hindiUtterance = new SpeechSynthesisUtterance(hindiTranslation);
+            hindiUtterance.lang = 'hi-IN'; // Hindi - India
+
+            const englishUtterance = new SpeechSynthesisUtterance(englishTranslation);
+            englishUtterance.lang = 'en-US'; // English - US
+
+            // Chain the utterances to play one after another
+            slokUtterance.onend = () => {
+                window.speechSynthesis.speak(hindiUtterance);
+            };
+
+            hindiUtterance.onend = () => {
+                window.speechSynthesis.speak(englishUtterance);
+            };
+
+            slokUtterance.onerror = (event) => {
+                console.error('SpeechSynthesisUtterance.onerror', event);
+            };
+
+            hindiUtterance.onerror = (event) => {
+                console.error('SpeechSynthesisUtterance.onerror', event);
+            };
+
+            englishUtterance.onerror = (event) => {
+                console.error('SpeechSynthesisUtterance.onerror', event);
+            };
+
+            // Start with the Slok
+            window.speechSynthesis.speak(slokUtterance);
+        }
+    </script>
+</body>
+</html>
